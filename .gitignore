@@ -1,0 +1,17 @@
+# Dependencies
+/vendor/
+
+# Runtime uploads (attendance photos, logos)
+/uploads/attendance/*
+!/uploads/attendance/.gitkeep
+/uploads/logos/*
+!/uploads/logos/.gitkeep
+
+# Deployment config with credentials
+/deploy/ftp_config.json
+
+# Local environment / OS
+.env
+*.log
+Thumbs.db
+.DS_Store
