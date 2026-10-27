@@ -62,6 +62,7 @@ $recentAttendance = $db->query("
             <p class="text-sm text-gray-500"><?= formatDate($today) ?></p>
         </div>
         <div class="flex space-x-2">
+            <a href="<?= APP_URL ?>/index.php?page=kiosk" target="_blank" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 font-semibold shadow flex items-center"><i class="fas fa-camera mr-2"></i>Office Face Kiosk</a>
             <a href="<?= APP_URL ?>/index.php?page=attendance" class="px-4 py-2 bg-blue-700 text-white rounded-lg text-sm hover:bg-blue-800"><i class="fas fa-clipboard-check mr-2"></i>View Attendance</a>
         </div>
     </div>

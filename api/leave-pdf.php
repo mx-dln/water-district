@@ -1,5 +1,12 @@
 <?php
-require_once __DIR__ . '/../vendor/autoload.php';
+$autoloadPath = __DIR__ . '/../vendor/autoload.php';
+if (!file_exists($autoloadPath)) {
+    http_response_code(500);
+    echo 'PDF dependencies are not installed. Run "composer install" in the project folder, then upload the generated vendor folder or run Composer on the server.';
+    exit;
+}
+
+require_once $autoloadPath;
 require_once __DIR__ . '/../config/app.php';
 requireRole('Administrator');
 

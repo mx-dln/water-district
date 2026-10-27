@@ -66,7 +66,7 @@ nav, aside { display: none !important; }
                 <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-1">
                     <i class="fas fa-camera text-blue-600 text-lg"></i>
                 </div>
-                <h2 class="text-base font-bold text-gray-800"><?= $label ?></h2>
+                <h2 class="text-base font-bold text-gray-800"><?= $label ?> <span class="text-xs font-semibold text-blue-600 block">[Field / Outside Attendance]</span></h2>
                 <p class="text-xs text-gray-500"><?= escapeOutput($emp['first_name'] . ' ' . $emp['last_name']) ?> <span class="text-gray-400">(<?= escapeOutput($emp['employee_no']) ?>)</span></p>
             </div>
 

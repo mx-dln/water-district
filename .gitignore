@@ -6,6 +6,8 @@
 !/uploads/attendance/.gitkeep
 /uploads/logos/*
 !/uploads/logos/.gitkeep
+/uploads/faces/*
+!/uploads/faces/.gitkeep
 
 # Deployment config with credentials
 /deploy/ftp_config.json

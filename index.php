@@ -10,7 +10,11 @@ $page = $page ?: 'login';
 $publicPages = ['login', 'logout', 'password-recovery', 'reset-password'];
 
 if (!in_array($page, $publicPages)) {
-    requireLogin();
+    if (in_array($page, ['kiosk', 'attendance-kiosk'], true)) {
+        requireRole('Administrator');
+    } else {
+        requireLogin();
+    }
 }
 
 $allowedPages = [
@@ -22,10 +26,13 @@ $allowedPages = [
     'departments', 'departments-create', 'departments-edit',
     'leaves', 'leaves-request', 'leaves-manage', 'leaves-cs-form-6',
     'polygon', 'reports', 'settings', 'profile', 'change-password',
+    'kiosk', 'attendance-kiosk',
 ];
 
 $customRoutes = [
     'leaves-cs-form-6' => __DIR__ . '/modules/leaves/cs-form-6.php',
+    'kiosk' => __DIR__ . '/modules/attendance/kiosk.php',
+    'attendance-kiosk' => __DIR__ . '/modules/attendance/kiosk.php',
 ];
 
 $pageFile = $customRoutes[$page] ?? (__DIR__ . '/modules/' . str_replace('-', '/', $page) . '.php');
@@ -43,7 +50,7 @@ if (in_array($page, ['login', 'logout', 'password-recovery', 'reset-password']))
     exit;
 }
 
-$noLayoutPages = ['leaves-cs-form-6'];
+$noLayoutPages = ['leaves-cs-form-6', 'kiosk', 'attendance-kiosk'];
 if (in_array($page, $noLayoutPages) && file_exists($pageFile)) {
     require $pageFile;
     exit;

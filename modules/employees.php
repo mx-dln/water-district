@@ -32,9 +32,10 @@ $totalPages = ceil($total / ITEMS_PER_PAGE);
 $offset = ($page - 1) * ITEMS_PER_PAGE;
 
 $stmt = $db->prepare("
-    SELECT e.*, d.name as department_name
+    SELECT e.*, d.name as department_name, COALESCE(ef.face_count, 0) as face_count
     FROM employees e
     LEFT JOIN departments d ON e.department_id = d.id
+    LEFT JOIN (SELECT employee_id, COUNT(*) as face_count FROM employee_faces GROUP BY employee_id) ef ON e.id = ef.employee_id
     $where
     ORDER BY e.last_name ASC
     LIMIT ? OFFSET ?
@@ -50,9 +51,15 @@ $depts = $db->query("SELECT id, name FROM departments WHERE is_active = 1 ORDER 
             <h1 class="text-2xl font-bold text-gray-800">Employees</h1>
             <p class="text-sm text-gray-500"><?= $total ?> total employees</p>
         </div>
-        <a href="<?= APP_URL ?>/index.php?page=employees-create" class="px-4 py-2 bg-blue-700 text-white rounded-lg text-sm hover:bg-blue-800">
-            <i class="fas fa-plus mr-2"></i>Add Employee
-        </a>
+        <div class="flex items-center space-x-2">
+            <a href="<?= APP_URL ?>/index.php?page=kiosk" target="_blank" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold flex items-center gap-2 shadow transition">
+                <i class="fas fa-camera"></i>
+                <span>Open Office Kiosk</span>
+            </a>
+            <a href="<?= APP_URL ?>/index.php?page=employees-create" class="px-4 py-2 bg-blue-700 text-white rounded-lg text-sm hover:bg-blue-800">
+                <i class="fas fa-plus mr-2"></i>Add Employee
+            </a>
+        </div>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border">
@@ -82,12 +89,13 @@ $depts = $db->query("SELECT id, name FROM departments WHERE is_active = 1 ORDER 
                         <th class="text-left px-4 py-3 font-medium">Department</th>
                         <th class="text-left px-4 py-3 font-medium">Position</th>
                         <th class="text-left px-4 py-3 font-medium">Status</th>
+                        <th class="text-center px-4 py-3 font-medium">Face ID</th>
                         <th class="text-right px-4 py-3 font-medium">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
                     <?php if (empty($employees)): ?>
-                    <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No employees found</td></tr>
+                    <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No employees found</td></tr>
                     <?php else: foreach ($employees as $emp): ?>
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 font-medium"><?= escapeOutput($emp['employee_no']) ?></td>
@@ -102,10 +110,24 @@ $depts = $db->query("SELECT id, name FROM departments WHERE is_active = 1 ORDER 
                         <td class="px-4 py-3"><?= escapeOutput($emp['department_name'] ?? 'N/A') ?></td>
                         <td class="px-4 py-3"><?= escapeOutput($emp['position'] ?? 'N/A') ?></td>
                         <td class="px-4 py-3"><?= getStatusBadge($emp['employment_status']) ?></td>
-                        <td class="px-4 py-3 text-right">
-                            <a href="<?= APP_URL ?>/index.php?page=employees-view&id=<?= $emp['id'] ?>" class="text-blue-600 hover:text-blue-800 mr-2" title="View"><i class="fas fa-eye"></i></a>
-                            <a href="<?= APP_URL ?>/index.php?page=employees-edit&id=<?= $emp['id'] ?>" class="text-yellow-600 hover:text-yellow-800 mr-2" title="Edit"><i class="fas fa-edit"></i></a>
-                            <button onclick="confirmDelete(<?= $emp['id'] ?>)" class="text-red-600 hover:text-red-800" title="Delete"><i class="fas fa-trash"></i></button>
+                        <td class="px-4 py-3 text-center" id="faceBadge_<?= $emp['id'] ?>">
+                            <?php if ($emp['face_count'] > 0): ?>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                    <i class="fas fa-check-circle mr-1"></i>Enrolled (<?= $emp['face_count'] ?>)
+                                </span>
+                            <?php else: ?>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                                    <i class="fas fa-minus-circle mr-1"></i>Not Enrolled
+                                </span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                            <button type="button" onclick="openFaceEnrollModal(<?= $emp['id'] ?>, '<?= addslashes(escapeOutput($emp['first_name'] . ' ' . $emp['last_name'])) ?>')" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-800 mr-1.5 transition" title="Enroll / Manage Face Recognition">
+                                <i class="fas fa-camera text-sm"></i>
+                            </button>
+                            <a href="<?= APP_URL ?>/index.php?page=employees-view&id=<?= $emp['id'] ?>" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-blue-600 hover:bg-blue-50 mr-1" title="View"><i class="fas fa-eye"></i></a>
+                            <a href="<?= APP_URL ?>/index.php?page=employees-edit&id=<?= $emp['id'] ?>" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-yellow-600 hover:bg-yellow-50 mr-1" title="Edit"><i class="fas fa-edit"></i></a>
+                            <button type="button" onclick="confirmDelete(<?= $emp['id'] ?>)" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 hover:bg-red-50" title="Delete"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>
                     <?php endforeach; endif; ?>
@@ -132,3 +154,63 @@ function confirmDelete(id) {
     }
 }
 </script>
+
+<!-- Face Enrollment Modal -->
+<div id="faceEnrollModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border flex flex-col max-h-[90vh]">
+        <div class="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
+            <div>
+                <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-id-badge text-emerald-600"></i>
+                    <span>Face Recognition Enrollment</span>
+                </h3>
+                <p id="enrollEmployeeName" class="text-xs text-gray-500 font-medium">Employee Name</p>
+            </div>
+            <button onclick="closeFaceEnrollModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+        </div>
+
+        <div class="p-6 overflow-y-auto space-y-4">
+            <!-- Video & Canvas container -->
+            <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border">
+                <video id="enrollVideo" class="w-full h-full object-cover" autoplay muted playsinline></video>
+                <canvas id="enrollCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+            </div>
+
+            <!-- Real-time Status Guide -->
+            <div id="enrollStatus" class="text-xs text-center py-2 px-3 bg-gray-50 rounded-lg border font-medium text-gray-600">
+                Initializing face detection camera...
+            </div>
+
+            <!-- Capture Button -->
+            <button id="captureFaceBtn" onclick="captureAndEnrollFace()" disabled class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition shadow flex items-center justify-center gap-2">
+                <i class="fas fa-camera"></i>
+                <span>Register Face Template</span>
+            </button>
+
+            <!-- Existing Templates -->
+            <div class="pt-3 border-t">
+                <h4 class="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Registered Face Samples:</h4>
+                <div id="existingFacesList" class="space-y-1.5 max-h-36 overflow-y-auto">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <div class="px-6 py-3 border-t bg-gray-50 flex justify-end">
+            <button onclick="closeFaceEnrollModal()" class="px-4 py-2 border rounded-lg text-xs font-medium hover:bg-gray-100">
+                Done / Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const ENROLL_CONFIG = {
+    faceApiUrl: "<?= baseUrl('/api/face.php') ?>",
+    modelsUrl: "<?= baseUrl('/assets/models') ?>",
+    csrfTokenName: "<?= CSRF_TOKEN_NAME ?>",
+    csrfToken: "<?= generateCSRFToken() ?>"
+};
+</script>
+<script src="<?= baseUrl('/assets/js/face-api.min.js') ?>"></script>
+<script src="<?= baseUrl('/assets/js/face-enroll.js?v=' . filemtime(__DIR__ . '/../assets/js/face-enroll.js')) ?>"></script>

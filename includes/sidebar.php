@@ -7,10 +7,11 @@ if (isAdmin()) {
     $menuItems = [
         ['page' => 'dashboard',       'label' => 'Dashboard',      'icon' => 'fa-chart-pie'],
         ['page' => 'attendance',      'label' => 'Attendance',     'icon' => 'fa-clipboard-check'],
+        ['page' => 'kiosk',           'label' => 'Office Face Kiosk', 'icon' => 'fa-camera'],
         ['page' => 'employees',       'label' => 'Employees',      'icon' => 'fa-users'],
         ['page' => 'departments',     'label' => 'Departments',    'icon' => 'fa-building'],
         ['page' => 'leaves',          'label' => 'Leave Requests', 'icon' => 'fa-calendar-alt'],
-        ['page' => 'polygon',         'label' => 'Office Polygon', 'icon' => 'fa-draw-polygon'],
+        ['page' => 'polygon',         'label' => 'Field Geofence', 'icon' => 'fa-draw-polygon'],
         ['page' => 'reports',         'label' => 'Reports',        'icon' => 'fa-file-alt'],
         ['page' => 'settings',        'label' => 'Settings',       'icon' => 'fa-cog'],
     ];

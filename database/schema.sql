@@ -133,6 +133,10 @@ CREATE TABLE `attendance` (
   `time_out_photo` VARCHAR(255) DEFAULT NULL,
   `break_in_photo` VARCHAR(255) DEFAULT NULL,
   `break_out_photo` VARCHAR(255) DEFAULT NULL,
+  `time_in_method` VARCHAR(20) DEFAULT 'polygon',
+  `time_out_method` VARCHAR(20) DEFAULT 'polygon',
+  `break_in_method` VARCHAR(20) DEFAULT 'polygon',
+  `break_out_method` VARCHAR(20) DEFAULT 'polygon',
   `device_info` TEXT DEFAULT NULL,
   `browser_info` TEXT DEFAULT NULL,
   `remarks` TEXT DEFAULT NULL,
@@ -388,3 +392,18 @@ INSERT INTO `employees` (`id`, `user_id`, `department_id`, `employee_no`, `first
 (2, 2, 1, 'EMP-001', 'Juan', 'Dela Cruz', 'Santos', 'Administrative Assistant', 'regular'),
 (3, 3, 2, 'EMP-002', 'Maria', 'Santos', 'Lopez', 'Accountant', 'regular'),
 (4, 4, 3, 'EMP-003', 'Ricardo', 'Reyes', 'Garcia', 'Field Technician', 'regular');
+
+-- -----------------------------------------------------------
+-- Employee Face Descriptors (Face Recognition Kiosk)
+-- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `employee_faces` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `employee_id` INT UNSIGNED NOT NULL,
+  `descriptor` MEDIUMTEXT NOT NULL,
+  `photo_path` VARCHAR(255) DEFAULT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_faces_employee` (`employee_id`),
+  CONSTRAINT `fk_faces_employee` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

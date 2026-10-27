@@ -64,7 +64,10 @@ $monthStats = $monthStats->fetch();
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border p-6">
-        <h3 class="font-semibold text-gray-800 mb-4">Quick Attendance</h3>
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-gray-800">Field Attendance (GPS Boundary + Selfie)</h3>
+            <span class="text-xs text-slate-500 font-medium hidden sm:inline"><i class="fas fa-camera text-blue-600 mr-1"></i>Office attendance is handled via the Office Face Kiosk</span>
+        </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <?php
             $actions = [

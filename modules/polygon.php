@@ -47,8 +47,8 @@ for ($y = $startYear; $y <= $endYear + 1; $y++) {
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Office Polygon Management</h1>
-            <p class="text-sm text-gray-500">Draw the exact office boundary for geofencing</p>
+            <h1 class="text-2xl font-bold text-gray-800">Field Geofence Boundary</h1>
+            <p class="text-sm text-gray-500">Configure geographical polygon boundary for outside and field attendance</p>
         </div>
     </div>
 
