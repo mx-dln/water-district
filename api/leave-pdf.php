@@ -63,6 +63,8 @@ $dateFrom = $leave['date_from'] ?? '';
 $dateTo = $leave['date_to'] ?? '';
 $days = $leave['days'] ?? '';
 $filingDate = date('Y-m-d', strtotime($leave['created_at'] ?? 'now'));
+$filingYear = (int) date('Y', strtotime($leave['date_from'] ?? 'now'));
+$pdfCredits = getEmployeeLeaveCreditSummary((int)$leave['employee_id'], $filingYear);
 
 $logoData = '';
 if ($agencyLogo) {

@@ -1,7 +1,7 @@
 <?php
 requireRole('Administrator');
 
-$depts = $db->query("SELECT id, name FROM departments WHERE is_active = 1 ORDER BY name")->fetchAll();
+$depts = $db->query("SELECT id, name FROM departments WHERE is_active = 1 ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
 
 $error = '';
 $success = '';
@@ -49,8 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
                 $db->commit();
                 logAudit('create_employee', 'employees', "Created employee: $empNo - $firstName $lastName");
-                setFlash('Employee created successfully! Login credentials: Username: ' . $username, 'success');
-                redirect(APP_URL . '/index.php?page=employees');
+                setFlash('Employee created successfully! Account username: ' . $username, 'success');
+                redirect(baseUrl() . '/index.php?page=employees');
             } catch (Exception $e) {
                 $db->rollBack();
                 $error = 'Error creating employee: ' . ($e->getCode() == 23000 ? 'Username or employee number already exists' : $e->getMessage());
@@ -59,87 +59,152 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<div class="max-w-3xl mx-auto">
-    <div class="flex items-center justify-between mb-6">
+
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Add Employee</h1>
-            <p class="text-sm text-gray-500">Create a new employee account</p>
+            <div class="flex items-center space-x-2 text-xs text-slate-500 font-medium mb-1">
+                <a href="<?= baseUrl() ?>/index.php?page=employees" class="hover:text-blue-600">Employees</a>
+                <span>&bull;</span>
+                <span class="text-slate-700 font-semibold">New Record</span>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-extrabold text-navy-950 font-heading tracking-tight">Register New Employee</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                Set up employee profile credentials and CCWD departmental details
+            </p>
         </div>
-        <a href="<?= APP_URL ?>/index.php?page=employees" class="text-sm text-gray-600 hover:text-gray-800"><i class="fas fa-arrow-left mr-1"></i>Back</a>
+        <a href="<?= baseUrl() ?>/index.php?page=employees"
+           class="inline-flex items-center space-x-2 px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold shadow-xs transition-colors">
+            <i class="fas fa-arrow-left text-slate-400"></i>
+            <span>Back to Directory</span>
+        </a>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border p-6">
-        <?php if ($error): ?><div class="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm"><?= escapeOutput($error) ?></div><?php endif; ?>
+
+    <div class="app-card p-6 sm:p-8">
+        <?php if ($error): ?>
+        <div class="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl flex items-center space-x-3 text-xs sm:text-sm">
+            <i class="fas fa-circle-exclamation text-base text-rose-600 shrink-0"></i>
+            <span><?= escapeOutput($error) ?></span>
+        </div>
+        <?php endif; ?>
+
         <form method="POST" class="space-y-6">
             <?= csrfField() ?>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Employee No <span class="text-red-500">*</span></label>
-                    <input type="text" name="employee_no" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="Auto-generated if empty">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Username <span class="text-red-500">*</span></label>
-                    <input type="text" name="username" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="Login username">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password <span class="text-red-500">*</span></label>
-                    <input type="password" name="password" required minlength="8" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="Min. 8 characters">
-                </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">First Name <span class="text-red-500">*</span></label>
-                    <input type="text" name="first_name" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
-                    <input type="text" name="middle_name" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Last Name <span class="text-red-500">*</span></label>
-                    <input type="text" name="last_name" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-                </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                    <select name="department_id" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-                        <option value="">Select Department</option>
-                        <?php foreach ($depts as $d): ?>
-                        <option value="<?= $d['id'] ?>"><?= escapeOutput($d['name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Position</label>
-                    <input type="text" name="position" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-                </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" name="email" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
-                    <input type="text" name="contact_no" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-                </div>
-            </div>
+
+            <!-- Section 1: System Credentials -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Employment Status</label>
-                <select name="employment_status" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-                    <option value="regular">Regular</option>
-                    <option value="probationary">Probationary</option>
-                    <option value="contractual">Contractual</option>
-                    <option value="part-time">Part-Time</option>
-                </select>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 font-heading mb-4 pb-2 border-b border-slate-100 flex items-center space-x-2">
+                    <i class="fas fa-key text-blue-600"></i>
+                    <span>Account Credentials & Identification</span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 font-heading mb-1.5">Employee No</label>
+                        <input type="text" name="employee_no" placeholder="Auto-generated if blank"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm font-mono focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 font-heading mb-1.5">Username <span class="text-rose-500">*</span></label>
+                        <input type="text" name="username" required placeholder="e.g. jdelacruz"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 font-heading mb-1.5">Password <span class="text-rose-500">*</span></label>
+                        <input type="password" name="password" required minlength="8" placeholder="Minimum 8 characters"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
+                    </div>
+                </div>
             </div>
+
+            <!-- Section 2: Personal Details -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <textarea name="address" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"></textarea>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 font-heading mb-4 pb-2 border-b border-slate-100 flex items-center space-x-2">
+                    <i class="fas fa-user text-blue-600"></i>
+                    <span>Personal Information</span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 font-heading mb-1.5">First Name <span class="text-rose-500">*</span></label>
+                        <input type="text" name="first_name" required
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 font-heading mb-1.5">Middle Name</label>
+                        <input type="text" name="middle_name"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 font-heading mb-1.5">Last Name <span class="text-rose-500">*</span></label>
+                        <input type="text" name="last_name" required
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
+                    </div>
+                </div>
             </div>
-            <div class="flex items-center space-x-3">
-                <button type="submit" class="px-6 py-2.5 bg-blue-700 text-white rounded-lg text-sm font-medium hover:bg-blue-800"><i class="fas fa-save mr-2"></i>Save Employee</button>
-                <a href="<?= APP_URL ?>/index.php?page=employees" class="px-6 py-2.5 border rounded-lg text-sm hover:bg-gray-50">Cancel</a>
+
+            <!-- Section 3: Official Position & Contact -->
+            <div>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 font-heading mb-4 pb-2 border-b border-slate-100 flex items-center space-x-2">
+                    <i class="fas fa-briefcase text-blue-600"></i>
+                    <span>Assignment & Designation</span>
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 font-heading mb-1.5">Department</label>
+                        <select name="department_id"
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
+                            <option value="">Select Department</option>
+                            <?php foreach ($depts as $d): ?>
+                            <option value="<?= $d['id'] ?>"><?= escapeOutput($d['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 font-heading mb-1.5">Official Position Title</label>
+                        <input type="text" name="position" placeholder="e.g. Administrative Officer II"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 font-heading mb-1.5">Email Address</label>
+                        <input type="email" name="email" placeholder="official@water.district.ph"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 font-heading mb-1.5">Contact Number</label>
+                        <input type="text" name="contact_no" placeholder="09xxxxxxxxx"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 font-heading mb-1.5">Employment Status</label>
+                        <select name="employment_status"
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
+                            <option value="regular">Regular</option>
+                            <option value="probationary">Probationary</option>
+                            <option value="contractual">Contractual</option>
+                            <option value="part-time">Part-Time</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label class="block text-xs font-bold text-slate-700 font-heading mb-1.5">Residential Address</label>
+                    <textarea name="address" rows="2" placeholder="Barangay, City / Municipality, Province"
+                              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"></textarea>
+                </div>
+            </div>
+
+            <!-- Submit Button Bar -->
+            <div class="pt-4 border-t border-slate-100 flex items-center space-x-3">
+                <button type="submit"
+                        class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-colors flex items-center space-x-2">
+                    <i class="fas fa-check text-xs"></i>
+                    <span>Register Employee</span>
+                </button>
+                <a href="<?= baseUrl() ?>/index.php?page=employees"
+                   class="px-5 py-2.5 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-xs sm:text-sm font-semibold transition-colors">
+                    Cancel
+                </a>
             </div>
         </form>
     </div>

@@ -36,6 +36,8 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     if ($leave) {
         $employee = $leave;
         $departmentName = $leave['department_name'] ?? '';
+$csYear = (int) date('Y', strtotime($leave['date_from'] ?? 'now'));
+$csCredits = getEmployeeLeaveCreditSummary((int)$leave['employee_id'], $csYear);
         $leaveTypeCode = strtolower($leave['leave_type_code'] ?? '');
         $leaveTypeName = $leave['leave_type_name'] ?? '';
     }

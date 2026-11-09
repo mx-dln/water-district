@@ -83,10 +83,10 @@ foreach ($recentRows as $r) {
             color: var(--kiosk-ink);
         }
         .kiosk-header {
-            background: linear-gradient(115deg, #0f2748 0%, #123b68 55%, #17617a 100%);
-            border-bottom: 0;
+            background: #0b1d36;
+            border-bottom: 1px solid #102a4d;
             color: white;
-            box-shadow: 0 10px 28px rgba(15, 39, 72, .16);
+            box-shadow: 0 4px 12px rgba(11, 29, 54, .12);
         }
         .kiosk-header h1, .kiosk-header .text-gray-900, .kiosk-header .text-gray-800 { color: white !important; }
         .kiosk-header .text-gray-500 { color: #bfdbfe !important; }
@@ -96,9 +96,9 @@ foreach ($recentRows as $r) {
         .kiosk-main { max-width: 100%; width: 100%; }
         .kiosk-card {
             border-color: var(--kiosk-line) !important;
-            box-shadow: 0 10px 30px rgba(30, 64, 100, .06) !important;
+            box-shadow: 0 4px 12px rgba(30, 64, 100, .04) !important;
         }
-        .sequence-card { background: linear-gradient(135deg, #ffffff 0%, #f7fbff 100%); }
+        .sequence-card { background: #ffffff; }
         .sequence-step { transition: transform .2s ease, box-shadow .2s ease; }
         .sequence-step:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(37,99,235,.08); }
         .camera-card { background: #ffffff; }
@@ -295,7 +295,7 @@ foreach ($recentRows as $r) {
 
                     <!-- Employee Profile Header -->
                     <div class="flex items-center space-x-3.5 mb-3.5">
-                        <div id="showcaseAvatarWrap" class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-xl flex-shrink-0 shadow-md border-2 border-white ring-2 ring-blue-100 overflow-hidden">
+                        <div id="showcaseAvatarWrap" class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-blue-700 text-white font-bold flex items-center justify-center text-xl flex-shrink-0 shadow-sm border border-slate-200 overflow-hidden">
                             <span id="showcaseAvatarInitials">--</span>
                             <img id="showcaseAvatarImg" src="" class="w-full h-full object-cover hidden" alt="Avatar">
                         </div>
@@ -309,7 +309,7 @@ foreach ($recentRows as $r) {
                     </div>
 
                     <!-- Most Recent Punch Highlight Banner -->
-                    <div id="showcasePunchHighlight" class="p-3 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200 mb-3 flex items-center justify-between">
+                    <div id="showcasePunchHighlight" class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 mb-3 flex items-center justify-between">
                         <div>
                             <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">Recent Office Punch</span>
                             <span id="showcasePunchLabel" class="text-sm sm:text-base font-extrabold text-emerald-900 mt-0.5 block">Morning In</span>

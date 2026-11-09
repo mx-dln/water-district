@@ -9,133 +9,234 @@ $stmt = $db->prepare("
     WHERE e.id = ?
 ");
 $stmt->execute([$id]);
-$emp = $stmt->fetch();
-if (!$emp) { setFlash('Employee not found', 'danger'); redirect(APP_URL . '/index.php?page=employees'); }
+$emp = $stmt->fetch(PDO::FETCH_ASSOC);
+if (!$emp) {
+    setFlash('Employee not found', 'danger');
+    redirect(baseUrl() . '/index.php?page=employees');
+}
 
-$recentAtt = $db->prepare("SELECT * FROM attendance WHERE employee_id = ? ORDER BY date DESC LIMIT 5");
+$recentAtt = $db->prepare("SELECT * FROM attendance WHERE employee_id = ? ORDER BY date DESC LIMIT 6");
 $recentAtt->execute([$id]);
-$recentAtt = $recentAtt->fetchAll();
+$recentAtt = $recentAtt->fetchAll(PDO::FETCH_ASSOC);
 
 $faceTemplates = $db->prepare("SELECT * FROM employee_faces WHERE employee_id = ? ORDER BY created_at DESC");
 $faceTemplates->execute([$id]);
-$faceTemplates = $faceTemplates->fetchAll();
+$faceTemplates = $faceTemplates->fetchAll(PDO::FETCH_ASSOC);
+
+$initials = strtoupper(substr($emp['first_name'], 0, 1) . substr($emp['last_name'], 0, 1));
 ?>
-<div class="max-w-4xl mx-auto space-y-6">
-    <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-gray-800">Employee Profile</h1>
-        <div class="flex space-x-2">
-            <button onclick="openFaceEnrollModal(<?= $id ?>, '<?= addslashes(escapeOutput($emp['first_name'] . ' ' . $emp['last_name'])) ?>')" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 shadow flex items-center"><i class="fas fa-camera mr-2"></i>Face Recognition ID</button>
-            <a href="<?= APP_URL ?>/index.php?page=employees-edit&id=<?= $id ?>" class="px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm hover:bg-yellow-600"><i class="fas fa-edit mr-2"></i>Edit</a>
-            <a href="<?= APP_URL ?>/index.php?page=employees" class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50"><i class="fas fa-arrow-left mr-1"></i>Back</a>
+
+<div class="max-w-5xl mx-auto space-y-6">
+    <!-- Top Action Bar -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2 text-xs text-slate-500 font-medium mb-1">
+                <a href="<?= baseUrl() ?>/index.php?page=employees" class="hover:text-blue-600">Employees</a>
+                <span>&bull;</span>
+                <span class="text-slate-700 font-semibold"><?= escapeOutput($emp['employee_no']) ?></span>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-extrabold text-navy-950 font-heading tracking-tight">Personnel Dossier</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                Detailed profile, departmental position, biometric face templates, and attendance log
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <button onclick="openFaceEnrollModal(<?= $id ?>, '<?= addslashes(escapeOutput($emp['first_name'] . ' ' . $emp['last_name'])) ?>')"
+                    class="inline-flex items-center space-x-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-xs transition-colors">
+                <i class="fas fa-camera text-xs"></i>
+                <span>Biometric Face ID</span>
+            </button>
+            <a href="<?= baseUrl() ?>/index.php?page=employees-edit&id=<?= $id ?>"
+               class="inline-flex items-center space-x-2 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-xs transition-colors">
+                <i class="fas fa-pen-to-square text-xs"></i>
+                <span>Edit Profile</span>
+            </a>
+            <a href="<?= baseUrl() ?>/index.php?page=employees"
+               class="inline-flex items-center space-x-2 px-3.5 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold shadow-xs transition-colors">
+                <i class="fas fa-arrow-left text-slate-400"></i>
+                <span>Back</span>
+            </a>
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border p-6">
-        <div class="flex items-start space-x-6">
-            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <span class="text-2xl font-bold text-blue-700"><?= strtoupper(substr($emp['first_name'], 0, 1) . substr($emp['last_name'], 0, 1)) ?></span>
+    <!-- Main Profile Card -->
+    <div class="app-card p-6 sm:p-8">
+        <div class="flex flex-col md:flex-row items-start gap-6">
+            <div class="relative shrink-0 mx-auto md:mx-0">
+                <div class="w-24 h-24 rounded-xl bg-blue-700 flex items-center justify-center text-white text-3xl font-bold font-heading shadow-sm">
+                    <?= $initials ?>
+                </div>
+                <div class="absolute -bottom-1 -right-1">
+                    <?= getStatusBadge($emp['employment_status']) ?>
+                </div>
             </div>
-            <div class="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+
+            <div class="flex-1 w-full space-y-4">
                 <div>
-                    <p class="text-xs text-gray-500 uppercase">Employee No</p>
-                    <p class="font-medium"><?= escapeOutput($emp['employee_no']) ?></p>
+                    <div class="flex flex-wrap items-center gap-2 mb-1">
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200/60">
+                            <?= escapeOutput($emp['department_name'] ?? 'Unassigned Dept') ?>
+                        </span>
+                        <span class="text-xs font-mono font-bold text-slate-500">ID: <?= escapeOutput($emp['employee_no']) ?></span>
+                    </div>
+                    <h2 class="text-xl sm:text-2xl font-extrabold text-navy-950 font-heading">
+                        <?= escapeOutput($emp['first_name'] . ' ' . ($emp['middle_name'] ? $emp['middle_name'] . ' ' : '') . $emp['last_name']) ?>
+                    </h2>
+                    <p class="text-xs sm:text-sm font-semibold text-slate-600"><?= escapeOutput($emp['position'] ?? 'No Position Assigned') ?></p>
                 </div>
-                <div>
-                    <p class="text-xs text-gray-500 uppercase">Full Name</p>
-                    <p class="font-medium"><?= escapeOutput($emp['first_name'] . ' ' . ($emp['middle_name'] ? $emp['middle_name'] . ' ' : '') . $emp['last_name']) ?></p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500 uppercase">Status</p>
-                    <p><?= getStatusBadge($emp['employment_status']) ?></p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500 uppercase">Department</p>
-                    <p class="font-medium"><?= escapeOutput($emp['department_name'] ?? 'N/A') ?></p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500 uppercase">Position</p>
-                    <p class="font-medium"><?= escapeOutput($emp['position'] ?? 'N/A') ?></p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500 uppercase">Contact</p>
-                    <p class="font-medium"><?= escapeOutput($emp['contact_no'] ?? 'N/A') ?></p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500 uppercase">Email</p>
-                    <p class="font-medium"><?= escapeOutput($emp['user_email'] ?? 'N/A') ?></p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500 uppercase">Username</p>
-                    <p class="font-medium"><?= escapeOutput($emp['username']) ?></p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500 uppercase">Last Login</p>
-                    <p class="font-medium"><?= $emp['last_login'] ? formatDateTime($emp['last_login']) : 'Never' ?></p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t border-slate-100 text-xs">
+                    <div>
+                        <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Username</span>
+                        <span class="font-bold text-slate-800 font-mono mt-0.5 block"><?= escapeOutput($emp['username']) ?></span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Account Email</span>
+                        <span class="font-medium text-slate-800 mt-0.5 block"><?= escapeOutput($emp['user_email'] ?? 'None') ?></span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Contact Number</span>
+                        <span class="font-medium text-slate-800 font-mono mt-0.5 block"><?= escapeOutput($emp['contact_no'] ?? 'N/A') ?></span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Last Login Session</span>
+                        <span class="font-medium text-slate-700 mt-0.5 block"><?= $emp['last_login'] ? formatDateTime($emp['last_login']) : 'No session recorded' ?></span>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Registered Address</span>
+                        <span class="font-medium text-slate-700 mt-0.5 block"><?= escapeOutput($emp['address'] ?? 'No address registered') ?></span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border">
-        <div class="px-5 py-4 border-b"><h3 class="font-semibold text-gray-800">Recent Attendance</h3></div>
-        <div class="divide-y">
-            <?php if (empty($recentAtt)): ?>
-            <p class="p-4 text-sm text-gray-500 text-center">No attendance records</p>
-            <?php else: foreach ($recentAtt as $a): ?>
-            <div class="px-5 py-3 flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium"><?= formatDate($a['date']) ?></p>
-                    <p class="text-xs text-gray-500">In: <?= $a['time_in'] ? formatTime($a['time_in']) : '--' ?> | Out: <?= $a['time_out'] ? formatTime($a['time_out']) : '--' ?></p>
+    <!-- Biometric Face Templates Card -->
+    <div class="app-card p-6">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                    <i class="fas fa-camera text-xs"></i>
                 </div>
-                <div class="flex items-center space-x-2">
-                    <?= getStatusBadge($a['time_in_status'] ?? 'pending') ?>
-                    <a href="<?= APP_URL ?>/index.php?page=attendance-evidence&id=<?= $a['id'] ?>" class="text-blue-600 hover:text-blue-800 text-sm" title="View Evidence"><i class="fas fa-image"></i></a>
+                <div>
+                    <h3 class="font-bold text-base text-navy-950 font-heading">Face Recognition Descriptors</h3>
+                    <p class="text-xs text-slate-500">128-dimensional biometric embeddings registered in the neural model</p>
                 </div>
             </div>
-            <?php endforeach; endif; ?>
+            <span class="px-2.5 py-1 text-xs font-bold rounded-full <?= count($faceTemplates) > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500' ?>">
+                <?= count($faceTemplates) ?> Samples Registered
+            </span>
+        </div>
+        <?php if (empty($faceTemplates)): ?>
+        <div class="p-8 text-center text-slate-400">
+            <i class="fas fa-face-frown text-3xl mb-2 text-slate-300"></i>
+            <p class="text-sm font-semibold text-slate-600">No biometric face samples enrolled for this employee.</p>
+            <p class="text-xs text-slate-400 mt-1">Click the "Biometric Face ID" button above to capture neural facial descriptors.</p>
+        </div>
+        <?php else: ?>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <?php foreach ($faceTemplates as $idx => $ft): ?>
+            <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between">
+                <div>
+                    <span class="text-xs font-bold text-slate-800 font-heading">Sample #<?= $idx + 1 ?></span>
+                    <span class="block text-[10px] text-slate-400 mt-0.5"><?= formatDate($ft['created_at']) ?></span>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                    <i class="fas fa-check text-[9px] mr-1"></i>Active
+                </span>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- Recent Attendance Logs Card -->
+    <div class="app-card overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <h3 class="font-bold text-base text-navy-950 font-heading">Recent Attendance Logs</h3>
+            <a href="<?= baseUrl() ?>/index.php?page=attendance-history&employee_id=<?= $id ?>"
+               class="text-xs font-bold text-blue-600 hover:text-blue-800">
+                View Full Log &rarr;
+            </a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs sm:text-sm text-left">
+                <thead class="bg-slate-100/75 text-slate-600 text-[11px] font-bold uppercase tracking-wider font-heading border-b border-slate-200/80">
+                    <tr>
+                        <th class="px-6 py-3">Date</th>
+                        <th class="px-4 py-3">Time In</th>
+                        <th class="px-4 py-3">Time Out</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-6 py-3 text-right">Selfie Evidence</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <?php if (empty($recentAtt)): ?>
+                    <tr>
+                        <td colspan="5" class="px-6 py-10 text-center text-slate-400 text-sm">
+                            No attendance records logged for this employee.
+                        </td>
+                    </tr>
+                    <?php else: foreach ($recentAtt as $a): ?>
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="px-6 py-3.5 font-bold font-heading text-slate-800"><?= formatDate($a['date']) ?></td>
+                        <td class="px-4 py-3.5 font-bold font-mono text-slate-800"><?= $a['time_in'] ? formatTime($a['time_in']) : '--' ?></td>
+                        <td class="px-4 py-3.5 font-bold font-mono text-slate-800"><?= $a['time_out'] ? formatTime($a['time_out']) : '--' ?></td>
+                        <td class="px-4 py-3.5"><?= getStatusBadge($a['time_in_status'] ?? 'pending') ?></td>
+                        <td class="px-6 py-3.5 text-right">
+                            <a href="<?= baseUrl() ?>/index.php?page=attendance-evidence&id=<?= $a['id'] ?>"
+                               class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                                <i class="fas fa-camera text-[11px]"></i>
+                                <span>Audit</span>
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
 <!-- Face Enrollment Modal -->
-<div id="faceEnrollModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-    <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border flex flex-col max-h-[90vh]">
-        <div class="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
+<div id="faceEnrollModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-navy-950/70 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
+        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900 text-white">
             <div>
-                <h3 class="font-bold text-gray-800 flex items-center gap-2">
-                    <i class="fas fa-id-badge text-blue-600"></i>
+                <h3 class="font-bold text-sm sm:text-base font-heading flex items-center gap-2">
+                    <i class="fas fa-id-badge text-blue-400"></i>
                     <span>Face Recognition Enrollment</span>
                 </h3>
-                <p id="enrollEmployeeName" class="text-xs text-gray-500 font-medium">Employee Name</p>
+                <p id="enrollEmployeeName" class="text-xs text-slate-300 font-medium">Employee Name</p>
             </div>
-            <button onclick="closeFaceEnrollModal()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+            <button onclick="closeFaceEnrollModal()" class="text-white/60 hover:text-white text-xl font-bold p-1">&times;</button>
         </div>
 
-        <div class="p-6 overflow-y-auto space-y-4">
-            <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border">
+        <div class="p-6 overflow-y-auto space-y-4 custom-scrollbar">
+            <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-300 shadow-inner">
                 <video id="enrollVideo" class="w-full h-full object-cover" autoplay muted playsinline></video>
                 <canvas id="enrollCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
             </div>
 
-            <div id="enrollStatus" class="text-xs text-center py-2 px-3 bg-gray-50 rounded-lg border font-medium text-gray-600">
+            <div id="enrollStatus" class="text-xs text-center py-2.5 px-3 bg-slate-50 rounded-xl border border-slate-200 font-medium text-slate-700">
                 Initializing face detection camera...
             </div>
 
-            <button id="captureFaceBtn" onclick="captureAndEnrollFace()" disabled class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-sm transition shadow flex items-center justify-center gap-2">
+            <button id="captureFaceBtn" onclick="captureAndEnrollFace()" disabled
+                    class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs sm:text-sm transition-all shadow-xs flex items-center justify-center gap-2">
                 <i class="fas fa-camera"></i>
-                <span>Register Face Template</span>
+                <span>Register Face Descriptor</span>
             </button>
 
-            <div class="pt-3 border-t">
-                <h4 class="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Registered Face Samples:</h4>
-                <div id="existingFacesList" class="space-y-1.5 max-h-36 overflow-y-auto">
-                </div>
+            <div class="pt-3 border-t border-slate-100">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 font-heading mb-2">Registered Face Samples:</h4>
+                <div id="existingFacesList" class="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar"></div>
             </div>
         </div>
 
-        <div class="px-6 py-3 border-t bg-gray-50 flex justify-end">
-            <button onclick="location.reload()" class="px-4 py-2 border rounded-lg text-xs font-medium hover:bg-gray-100">
-                Done / Refresh Page
+        <div class="px-6 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+            <button onclick="location.reload()" class="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-colors">
+                Done / Refresh Profile
             </button>
         </div>
     </div>

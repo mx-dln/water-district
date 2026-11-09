@@ -18,7 +18,7 @@ $params = [$empId, $dateFrom, $dateTo];
 
 $countStmt = $db->prepare("SELECT COUNT(*) FROM attendance a $where");
 $countStmt->execute($params);
-$total = $countStmt->fetchColumn();
+$total = (int)$countStmt->fetchColumn();
 $totalPages = ceil($total / ITEMS_PER_PAGE);
 $offset = ($page - 1) * ITEMS_PER_PAGE;
 
@@ -32,99 +32,137 @@ $stmt = $db->prepare("
     LIMIT ? OFFSET ?
 ");
 $stmt->execute(array_merge($params, [ITEMS_PER_PAGE, $offset]));
-$records = $stmt->fetchAll();
+$records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $empInfo = null;
 if (!isAdmin() || !$isAdminView) {
     $empInfo = getEmployeeData($employeeId);
+} elseif ($isAdminView) {
+    $empInfo = getEmployeeData($empId);
 }
 ?>
-<div class="space-y-4 sm:space-y-6">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Attendance History</h1>
+            <div class="flex items-center space-x-2 text-xs text-slate-500 font-medium mb-1">
+                <a href="<?= baseUrl() ?>/index.php?page=attendance" class="hover:text-blue-600">Attendance</a>
+                <span>&bull;</span>
+                <span class="text-slate-700 font-semibold">History Logs</span>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-extrabold text-navy-950 font-heading tracking-tight">Attendance History</h1>
             <?php if ($empInfo): ?>
-            <p class="text-sm text-gray-500"><?= escapeOutput($empInfo['first_name'] . ' ' . $empInfo['last_name']) ?> | <?= escapeOutput($empInfo['employee_no']) ?></p>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                Records for <span class="font-bold text-slate-800"><?= escapeOutput($empInfo['first_name'] . ' ' . $empInfo['last_name']) ?></span>
+                (<span class="font-mono"><?= escapeOutput($empInfo['employee_no']) ?></span> &bull; <?= escapeOutput($empInfo['department_name'] ?? 'Staff') ?>)
+            </p>
             <?php endif; ?>
         </div>
-        <a href="<?= APP_URL ?>/index.php?page=attendance" class="text-sm text-gray-600 hover:text-gray-800 self-start sm:self-auto"><i class="fas fa-arrow-left mr-1"></i>Back</a>
+        <div>
+            <a href="<?= baseUrl() ?>/index.php?page=attendance"
+               class="inline-flex items-center space-x-2 px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-xs transition-colors">
+                <i class="fas fa-arrow-left text-slate-400"></i>
+                <span>Back to Attendance</span>
+            </a>
+        </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border p-4">
-        <form method="GET" class="flex flex-wrap gap-2 sm:gap-3 items-end">
+    <!-- Filter Card -->
+    <div class="app-card p-5">
+        <form method="GET" class="flex flex-wrap gap-4 items-end">
             <input type="hidden" name="page" value="attendance">
             <input type="hidden" name="subpage" value="history">
             <?php if ($isAdminView): ?>
             <input type="hidden" name="employee_id" value="<?= $empId ?>">
             <?php endif; ?>
-            <div class="flex-1 min-w-[120px]">
-                <label class="block text-xs text-gray-500 mb-1">From</label>
-                <input type="date" name="from" value="<?= $dateFrom ?>" class="w-full px-3 py-2 border rounded-lg text-sm">
+            <div class="flex-1 min-w-[150px]">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 font-heading mb-1.5">Date From</label>
+                <input type="date" name="from" value="<?= $dateFrom ?>"
+                       class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
             </div>
-            <div class="flex-1 min-w-[120px]">
-                <label class="block text-xs text-gray-500 mb-1">To</label>
-                <input type="date" name="to" value="<?= $dateTo ?>" class="w-full px-3 py-2 border rounded-lg text-sm">
+            <div class="flex-1 min-w-[150px]">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 font-heading mb-1.5">Date To</label>
+                <input type="date" name="to" value="<?= $dateTo ?>"
+                       class="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50/50 text-xs sm:text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
             </div>
-            <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-blue-700 text-white rounded-lg text-sm hover:bg-blue-800"><i class="fas fa-search mr-2"></i>Filter</button>
+            <div class="flex items-center space-x-2">
+                <button type="submit"
+                        class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-colors flex items-center space-x-2">
+                    <i class="fas fa-filter text-xs"></i>
+                    <span>Apply Filter</span>
+                </button>
+                <a href="<?= baseUrl() ?>/index.php?page=attendance&subpage=history<?= $isAdminView ? '&employee_id=' . $empId : '' ?>"
+                   class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-xs sm:text-sm font-semibold transition-colors">
+                    Reset
+                </a>
+            </div>
         </form>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border">
-        <div class="hidden sm:block overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50 text-gray-600">
+    <!-- Table Card -->
+    <div class="app-card overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <h3 class="font-bold text-base text-navy-950 font-heading">Logged Records</h3>
+            <span class="text-xs font-semibold text-slate-500"><?= $total ?> total entries</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs sm:text-sm text-left">
+                <thead class="bg-slate-100/75 text-slate-600 text-[11px] font-bold uppercase tracking-wider font-heading border-b border-slate-200/80">
                     <tr>
-                        <th class="text-left px-4 py-3 font-medium">Date</th>
-                        <th class="text-left px-4 py-3 font-medium">Time In</th>
-                        <th class="text-left px-4 py-3 font-medium">Break Out</th>
-                        <th class="text-left px-4 py-3 font-medium">Break In</th>
-                        <th class="text-left px-4 py-3 font-medium">Time Out</th>
-                        <th class="text-left px-4 py-3 font-medium">Status</th>
-                        <th class="text-center px-4 py-3 font-medium">Evidence</th>
+                        <th class="px-6 py-3">Date</th>
+                        <th class="px-4 py-3">Time In</th>
+                        <th class="px-4 py-3">Break Out</th>
+                        <th class="px-4 py-3">Break In</th>
+                        <th class="px-4 py-3">Time Out</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-center">Selfie Audit</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y">
+                <tbody class="divide-y divide-slate-100">
                     <?php if (empty($records)): ?>
-                    <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No records found</td></tr>
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-slate-400">
+                            <i class="fas fa-calendar-xmark text-3xl mb-2 text-slate-300"></i>
+                            <p class="text-sm font-medium">No attendance records found within the selected date range.</p>
+                        </td>
+                    </tr>
                     <?php else: foreach ($records as $r): ?>
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 font-medium"><?= formatDate($r['date'], 'M j, Y') ?></td>
-                        <td class="px-4 py-3"><?= $r['time_in'] ? formatTime($r['time_in']) : '--' ?></td>
-                        <td class="px-4 py-3"><?= $r['break_out'] ? formatTime($r['break_out']) : '--' ?></td>
-                        <td class="px-4 py-3"><?= $r['break_in'] ? formatTime($r['break_in']) : '--' ?></td>
-                        <td class="px-4 py-3"><?= $r['time_out'] ? formatTime($r['time_out']) : '--' ?></td>
-                        <td class="px-4 py-3"><?= getStatusBadge($r['time_in_status'] ?? 'pending') ?></td>
-                        <td class="px-4 py-3 text-center">
-                            <a href="<?= APP_URL ?>/index.php?page=attendance-evidence&id=<?= $r['id'] ?>" class="text-blue-600 hover:text-blue-800"><i class="fas fa-image"></i></a>
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="px-6 py-3.5 font-bold font-heading text-slate-800">
+                            <?= formatDate($r['date'], 'M j, Y') ?>
+                        </td>
+                        <td class="px-4 py-3.5 font-bold font-mono text-slate-800">
+                            <?= $r['time_in'] ? formatTime($r['time_in']) : '--' ?>
+                        </td>
+                        <td class="px-4 py-3.5 font-mono text-slate-600">
+                            <?= $r['break_out'] ? formatTime($r['break_out']) : '--' ?>
+                        </td>
+                        <td class="px-4 py-3.5 font-mono text-slate-600">
+                            <?= $r['break_in'] ? formatTime($r['break_in']) : '--' ?>
+                        </td>
+                        <td class="px-4 py-3.5 font-bold font-mono text-slate-800">
+                            <?= $r['time_out'] ? formatTime($r['time_out']) : '--' ?>
+                        </td>
+                        <td class="px-4 py-3.5">
+                            <?= getStatusBadge($r['time_in_status'] ?? 'pending') ?>
+                        </td>
+                        <td class="px-4 py-3.5 text-center">
+                            <a href="<?= baseUrl() ?>/index.php?page=attendance-evidence&id=<?= $r['id'] ?>"
+                               class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                                <i class="fas fa-camera text-[11px]"></i>
+                                <span>Evidence</span>
+                            </a>
                         </td>
                     </tr>
                     <?php endforeach; endif; ?>
                 </tbody>
             </table>
         </div>
-        <div class="sm:hidden divide-y">
-            <?php if (empty($records)): ?>
-            <p class="p-4 text-sm text-gray-500 text-center">No records found</p>
-            <?php else: foreach ($records as $r): ?>
-            <div class="p-4 space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="font-medium text-sm"><?= formatDate($r['date'], 'M j, Y') ?></span>
-                    <?= getStatusBadge($r['time_in_status'] ?? 'pending') ?>
-                </div>
-                <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                    <div><span class="text-gray-400">In:</span> <?= $r['time_in'] ? formatTime($r['time_in']) : '--' ?></div>
-                    <div><span class="text-gray-400">Out:</span> <?= $r['time_out'] ? formatTime($r['time_out']) : '--' ?></div>
-                    <div><span class="text-gray-400">Break Out:</span> <?= $r['break_out'] ? formatTime($r['break_out']) : '--' ?></div>
-                    <div><span class="text-gray-400">Break In:</span> <?= $r['break_in'] ? formatTime($r['break_in']) : '--' ?></div>
-                </div>
-                <div class="text-right">
-                    <a href="<?= APP_URL ?>/index.php?page=attendance-evidence&id=<?= $r['id'] ?>" class="text-blue-600 text-xs hover:underline"><i class="fas fa-image mr-1"></i>View Evidence</a>
-                </div>
-            </div>
-            <?php endforeach; endif; ?>
-        </div>
         <?php if ($totalPages > 1): ?>
-        <div class="p-4 border-t"><?= paginate($page, $totalPages) ?></div>
+        <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+            <?= paginate($page, $totalPages) ?>
+        </div>
         <?php endif; ?>
     </div>
 </div>

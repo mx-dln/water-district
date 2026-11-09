@@ -71,25 +71,46 @@ include __DIR__ . '/includes/header.php';
 include __DIR__ . '/includes/navbar.php';
 include __DIR__ . '/includes/sidebar.php';
 ?>
-<div id="mainContent" class="lg:ml-64 pt-16 min-h-screen">
-    <div class="p-4 lg:p-6">
+<div id="mainContent" class="lg:ml-64 pt-16 min-h-screen bg-slate-50/70 transition-all duration-200">
+    <main class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
         <?php
         $flash = getFlash();
-        if ($flash): ?>
-        <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show" x-transition
-             class="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-[90vw] max-w-sm px-5 py-3 rounded-xl shadow-lg text-sm font-medium border
-             <?= $flash['type'] === 'success' ? 'bg-green-50 text-green-800 border-green-200' : '' ?>
-             <?= $flash['type'] === 'danger' ? 'bg-red-50 text-red-800 border-red-200' : '' ?>
-             <?= $flash['type'] === 'warning' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' : '' ?>
-             <?= $flash['type'] === 'info' ? 'bg-blue-50 text-blue-800 border-blue-200' : '' ?>">
-            <div class="flex items-center justify-between">
-                <span><i class="fas fa-info-circle mr-2"></i><?= escapeOutput($flash['message']) ?></span>
-                <button @click="show = false" class="ml-3 text-current opacity-50 hover:opacity-100">&times;</button>
+        if ($flash):
+            $typeIcons = [
+                'success' => 'fa-check-circle text-emerald-500',
+                'danger'  => 'fa-circle-xmark text-rose-500',
+                'warning' => 'fa-triangle-exclamation text-amber-500',
+                'info'    => 'fa-circle-info text-blue-500',
+            ];
+            $typeBgs = [
+                'success' => 'bg-emerald-50/95 border-emerald-200/90 text-emerald-950',
+                'danger'  => 'bg-rose-50/95 border-rose-200/90 text-rose-950',
+                'warning' => 'bg-amber-50/95 border-amber-200/90 text-amber-950',
+                'info'    => 'bg-blue-50/95 border-blue-200/90 text-blue-950',
+            ];
+            $t = $flash['type'] ?? 'info';
+            $icon = $typeIcons[$t] ?? $typeIcons['info'];
+            $bg = $typeBgs[$t] ?? $typeBgs['info'];
+        ?>
+        <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show" x-cloak
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-2 scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+             x-transition:leave-end="opacity-0 -translate-y-2 scale-95"
+             class="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-[92vw] max-w-md px-4 py-3 rounded-2xl shadow-xl backdrop-blur-md border <?= $bg ?> flex items-start space-x-3">
+            <i class="fas <?= $icon ?> text-lg mt-0.5 shrink-0"></i>
+            <div class="flex-1 text-xs sm:text-sm font-medium leading-relaxed">
+                <?= escapeOutput($flash['message']) ?>
             </div>
+            <button @click="show = false" type="button" class="shrink-0 p-1 text-slate-400 hover:text-slate-700 transition-colors">
+                <i class="fas fa-times text-xs"></i>
+            </button>
         </div>
         <?php endif; ?>
         <?php require $pageFile; ?>
-    </div>
+    </main>
 </div>
 <?php include __DIR__ . '/includes/footer.php'; ?>
 <?php ob_end_flush(); ?>

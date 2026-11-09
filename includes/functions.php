@@ -464,3 +464,173 @@ function getDateRange($period) {
             return ['start' => $now->format('Y-m-d'), 'end' => $now->format('Y-m-d')];
     }
 }
+
+
+/**
+ * Compute Civil Service leave credit summary for an employee for a specific calendar year.
+ * Follows CSC MC No. 41 s. 1998 / CSC MC No. 14 s. 1999 rules:
+ * - Vacation Leave (VL) earns 15.0 days/year (1.25 days/month)
+ * - Sick Leave (SL) earns 15.0 days/year (1.25 days/month)
+ * - Tardiness and undertime deficiency minutes are converted (480 mins = 1 day) and deducted from Vacation Leave
+ * - Used is based on approved leave requests overlapping the year
+ * - Pending days are tracked for visibility
+ */
+function getEmployeeLeaveCreditSummary(int $employeeId, ?int $year = null): array {
+    global $db;
+    if (!$year) {
+        $year = (int) date('Y');
+    }
+    $yearFrom = $year . '-01-01';
+    $yearTo = $year . '-12-31';
+
+    // 1. Fetch attendance deficiency minutes (tardiness + undertime)
+    $stmtAtt = $db->prepare("
+        SELECT 
+            COALESCE(SUM(deficiency_minutes), 0) AS deficiency_minutes,
+            COALESCE(SUM(tardiness_minutes), 0) AS tardiness_minutes,
+            COALESCE(SUM(undertime_minutes), 0) AS undertime_minutes
+        FROM attendance
+        WHERE employee_id = ? AND date BETWEEN ? AND ?
+    ");
+    $stmtAtt->execute([$employeeId, $yearFrom, $yearTo]);
+    $attDef = $stmtAtt->fetch(PDO::FETCH_ASSOC);
+    $deficiencyMinutes = (int) ($attDef['deficiency_minutes'] ?? 0);
+    $tardinessMinutes = (int) ($attDef['tardiness_minutes'] ?? 0);
+    $undertimeMinutes = (int) ($attDef['undertime_minutes'] ?? 0);
+    $vlDeductions = round($deficiencyMinutes / 480, 3);
+
+    // 2. Fetch active leave types with approved and pending days
+    $stmt = $db->prepare("
+        SELECT lt.id, lt.name, lt.code, lt.description, lt.days_allowed,
+               COALESCE(SUM(CASE WHEN lr.status = 'approved' THEN lr.days ELSE 0 END), 0) AS days_used,
+               COALESCE(SUM(CASE WHEN lr.status = 'pending' THEN lr.days ELSE 0 END), 0) AS days_pending
+        FROM leave_types lt
+        LEFT JOIN leave_requests lr ON lr.leave_type_id = lt.id 
+            AND lr.employee_id = ?
+            AND lr.date_from <= ?
+            AND lr.date_to >= ?
+        WHERE lt.is_active = 1
+        GROUP BY lt.id, lt.name, lt.code, lt.description, lt.days_allowed
+        ORDER BY lt.id ASC
+    ");
+    $stmt->execute([$employeeId, $yearTo, $yearFrom]);
+    $leaveTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $items = [];
+    $totalEarned = 0.0;
+    $totalUsed = 0.0;
+    $totalDeductions = 0.0;
+    $totalBalance = 0.0;
+    $totalPending = 0.0;
+
+    $vlData = null;
+    $slData = null;
+    $splData = null;
+    $mflData = null;
+
+    foreach ($leaveTypes as $lt) {
+        $code = strtoupper(trim($lt['code'] ?? ''));
+        $daysAllowed = (float) ($lt['days_allowed'] ?? 0);
+        $used = (float) ($lt['days_used'] ?? 0);
+        $pending = (float) ($lt['days_pending'] ?? 0);
+
+        // Standard annual earned credits
+        $earned = $daysAllowed;
+        $deductions = 0.0;
+        $deductionNote = '';
+
+        if ($code === 'VL') {
+            $deductions = $vlDeductions;
+            if ($deficiencyMinutes > 0) {
+                $deductionNote = "{$deficiencyMinutes} mins tardiness/undertime";
+            }
+        }
+
+        $balance = max(0, $earned - $used - $deductions);
+
+        $row = [
+            'id' => (int) $lt['id'],
+            'name' => $lt['name'],
+            'code' => $code,
+            'description' => $lt['description'],
+            'earned' => $earned,
+            'used' => $used,
+            'deducted' => $deductions,
+            'deduction_note' => $deductionNote,
+            'pending' => $pending,
+            'balance' => $balance,
+        ];
+
+        $items[$code] = $row;
+
+        if ($code === 'VL') {
+            $vlData = $row;
+            $totalEarned += $earned;
+            $totalUsed += $used;
+            $totalDeductions += $deductions;
+            $totalBalance += $balance;
+            $totalPending += $pending;
+        } elseif ($code === 'SL') {
+            $slData = $row;
+            $totalEarned += $earned;
+            $totalUsed += $used;
+            $totalBalance += $balance;
+            $totalPending += $pending;
+        } elseif ($code === 'SPL') {
+            $splData = $row;
+        } elseif ($code === 'MFL') {
+            $mflData = $row;
+        }
+    }
+
+    // Default fallbacks in case standard types were missing in DB
+    if (!$vlData) {
+        $vlData = [
+            'id' => 1, 'name' => 'Vacation Leave', 'code' => 'VL', 'description' => 'Annual vacation leave',
+            'earned' => 15.0, 'used' => 0.0, 'deducted' => $vlDeductions,
+            'deduction_note' => $deficiencyMinutes > 0 ? "{$deficiencyMinutes} mins tardiness/undertime" : '',
+            'pending' => 0.0, 'balance' => max(0, 15.0 - $vlDeductions)
+        ];
+    }
+    if (!$slData) {
+        $slData = [
+            'id' => 3, 'name' => 'Sick Leave', 'code' => 'SL', 'description' => 'Medical or health-related leave',
+            'earned' => 15.0, 'used' => 0.0, 'deducted' => 0.0, 'deduction_note' => '',
+            'pending' => 0.0, 'balance' => 15.0
+        ];
+    }
+    if (!$splData) {
+        $splData = [
+            'id' => 6, 'name' => 'Special Privilege Leave', 'code' => 'SPL', 'description' => 'Special privilege leave',
+            'earned' => 3.0, 'used' => 0.0, 'deducted' => 0.0, 'deduction_note' => '',
+            'pending' => 0.0, 'balance' => 3.0
+        ];
+    }
+    if (!$mflData) {
+        $mflData = [
+            'id' => 2, 'name' => 'Mandatory/Forced Leave', 'code' => 'MFL', 'description' => 'Mandatory five-day leave',
+            'earned' => 5.0, 'used' => 0.0, 'deducted' => 0.0, 'deduction_note' => '',
+            'pending' => 0.0, 'balance' => 5.0
+        ];
+    }
+
+    return [
+        'year' => $year,
+        'employee_id' => $employeeId,
+        'deficiency_minutes' => $deficiencyMinutes,
+        'tardiness_minutes' => $tardinessMinutes,
+        'undertime_minutes' => $undertimeMinutes,
+        'vl' => $vlData,
+        'sl' => $slData,
+        'spl' => $splData,
+        'mfl' => $mflData,
+        'items' => $items,
+        'totals' => [
+            'earned' => $totalEarned,
+            'used' => $totalUsed,
+            'deducted' => $totalDeductions,
+            'balance' => $totalBalance,
+            'pending' => $totalPending,
+        ]
+    ];
+}
